@@ -229,37 +229,44 @@
             submitBtn.textContent = 'Analyzing...';
             
             try {
-                // Step 1: Search for LinkedIn company page
-                const linkedinUrl = await findLinkedInCompanyPage(brandName);
+                // Call your N8N webhook
+                const response = await fetch('https://ruefel.app.n8n.cloud/webhook-test/company-classifier', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        "Brand Name": brandName,
+                        "Website_URL": websiteUrl
+                    })
+                });
                 
-                if (!linkedinUrl) {
-                    showResult('error', 'LinkedIn page not found', `Could not find a LinkedIn company page for "${brandName}". The company might not have a LinkedIn presence.`);
-                    return;
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 
-                // Step 2: Get employee count from LinkedIn
-                const employeeData = await getEmployeeCount(linkedinUrl);
+                const data = await response.json();
+                console.log('N8N Response:', data); // For debugging
                 
-                if (!employeeData.found) {
-                    showResult('error', 'Employee count not found', `Found LinkedIn page but could not extract employee count. <a href="${linkedinUrl}" target="_blank" class="linkedin-link">View LinkedIn page</a>`);
-                    return;
+                // Handle N8N response
+                if (data.classification) {
+                    const resultText = `${data.classification} Company`;
+                    const details = `
+                        <strong>${brandName}</strong><br>
+                        Employee Count: ${data.employeeCount || 'Unknown'} employees<br>
+                        ${data.linkedinUrl ? `LinkedIn: <a href="${data.linkedinUrl}" target="_blank" class="linkedin-link">View Page</a><br>` : ''}
+                        Confidence: ${data.confidence || 0}%
+                    `;
+                    
+                    showResult(data.classification.toLowerCase(), resultText, details);
+                } else {
+                    // Handle case where no classification is returned
+                    showResult('error', 'Classification Failed', `Raw response: ${JSON.stringify(data)}`);
                 }
-                
-                // Step 3: Classify company
-                const classification = employeeData.count > 200 ? 'Enterprise' : 'Growth';
-                const resultText = `${classification} Company`;
-                const details = `
-                    <strong>${brandName}</strong><br>
-                    Employee Count: ${employeeData.count} employees<br>
-                    Source: ${employeeData.source}<br>
-                    <a href="${linkedinUrl}" target="_blank" class="linkedin-link">View LinkedIn Page</a>
-                `;
-                
-                showResult(classification.toLowerCase(), resultText, details);
                 
             } catch (error) {
                 console.error('Error:', error);
-                showResult('error', 'Analysis Failed', 'An error occurred while analyzing the company. Please try again.');
+                showResult('error', 'Connection Failed', `Error: ${error.message}`);
             } finally {
                 // Reset button
                 loader.style.display = 'none';
@@ -280,75 +287,13 @@
         }
 
         async function findLinkedInCompanyPage(brandName) {
-            // Simulate the Brave Search functionality
-            // In a real implementation, you'd need to use a search API or CORS proxy
-            
-            // For demo purposes, let's use a mock implementation
-            // You'll need to replace this with actual search logic
-            
-            const searchQuery = `site:linkedin.com/company "${brandName}"`;
-            
-            // Mock response - in reality you'd call a search API
-            if (brandName.toLowerCase().includes('mysecondear')) {
-                return 'https://www.linkedin.com/company/mysecondear';
-            }
-            
-            // For other companies, you'd implement actual search
-            // This could use:
-            // 1. A CORS proxy + Google/Bing search
-            // 2. A backend API endpoint
-            // 3. A search service API
-            
-            return null;
+            // This is now handled by N8N workflow
+            return true;
         }
 
         async function getEmployeeCount(linkedinUrl) {
-            try {
-                // Note: Due to CORS restrictions, direct LinkedIn scraping from browser won't work
-                // You'll need either:
-                // 1. A CORS proxy
-                // 2. A backend API
-                // 3. A browser extension with host permissions
-                
-                // For demo purposes with known companies:
-                if (linkedinUrl.includes('mysecondear')) {
-                    return {
-                        found: true,
-                        count: 22,
-                        source: 'LinkedIn JSON-LD data'
-                    };
-                }
-                
-                // Mock implementation for demo
-                const mockEmployeeCounts = {
-                    'google': 150000,
-                    'microsoft': 220000,
-                    'apple': 164000,
-                    'tesla': 140000,
-                    'spotify': 9000,
-                    'airbnb': 6800,
-                    'stripe': 4000,
-                    'notion': 500,
-                    'figma': 800
-                };
-                
-                const companyName = linkedinUrl.split('/company/')[1]?.toLowerCase();
-                for (const [company, count] of Object.entries(mockEmployeeCounts)) {
-                    if (companyName?.includes(company)) {
-                        return {
-                            found: true,
-                            count: count,
-                            source: 'Demo data'
-                        };
-                    }
-                }
-                
-                return { found: false };
-                
-            } catch (error) {
-                console.error('Error getting employee count:', error);
-                return { found: false };
-            }
+            // This is now handled by N8N workflow
+            return { found: true };
         }
 
         // Add some example companies for quick testing
