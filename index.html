@@ -248,23 +248,24 @@
                 const data = await response.json();
                 console.log('N8N Response:', data); // For debugging
                 
-                // N8N returns an array, so get the first item
-                const result = Array.isArray(data) ? data[0] : data;
+                // Extract result - handle both direct object and array responses
+                let classification;
+                if (data.result) {
+                    // Direct response: {"result": "Growth"}
+                    classification = data.result;
+                } else if (Array.isArray(data) && data[0] && data[0].classification) {
+                    // Array response: [{"classification": "Growth", ...}]
+                    classification = data[0].classification;
+                } else if (data.classification) {
+                    // Direct classification: {"classification": "Growth"}
+                    classification = data.classification;
+                }
                 
-                // Handle N8N response
-                if (result.classification) {
-                    const resultText = `${result.classification} Company`;
-                    const details = `
-                        <strong>${result.companyName || brandName}</strong><br>
-                        Employee Count: ${result.employeeCount || 'Unknown'} employees<br>
-                        ${result.linkedinUrl ? `LinkedIn: <a href="${result.linkedinUrl}" target="_blank" class="linkedin-link">View Page</a><br>` : ''}
-                        Source: ${result.source || 'N/A'}
-                    `;
-                    
-                    showResult(result.classification.toLowerCase(), resultText, details);
+                if (classification) {
+                    // Show only "Growth" or "Enterprise"
+                    showResult(classification.toLowerCase(), classification, '');
                 } else {
-                    // Handle case where no classification is returned
-                    showResult('error', 'Classification Failed', `Raw response: ${JSON.stringify(result)}`);
+                    showResult('error', 'Error', `Raw response: ${JSON.stringify(data)}`);
                 }
                 
             } catch (error) {
