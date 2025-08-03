@@ -248,24 +248,12 @@
                 const data = await response.json();
                 console.log('N8N Response:', data); // For debugging
                 
-                // Extract result - handle both direct object and array responses
-                let classification;
-                if (data.result) {
-                    // Direct response: {"result": "Growth"}
-                    classification = data.result;
-                } else if (Array.isArray(data) && data[0] && data[0].classification) {
-                    // Array response: [{"classification": "Growth", ...}]
-                    classification = data[0].classification;
-                } else if (data.classification) {
-                    // Direct classification: {"classification": "Growth"}
-                    classification = data.classification;
-                }
-                
-                if (classification) {
-                    // Show only "Growth" or "Enterprise"
+                // Check if we got the expected response format
+                if (data && data.result) {
+                    const classification = data.result;
                     showResult(classification.toLowerCase(), classification, '');
                 } else {
-                    showResult('error', 'Error', `Raw response: ${JSON.stringify(data)}`);
+                    showResult('error', 'Error', `Unexpected response: ${JSON.stringify(data)}`);
                 }
                 
             } catch (error) {
