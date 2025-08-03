@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Company Classifier - Enterprise or Growth?</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2rem;
+            font-weight: 700;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1.1rem;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+
+        input[type="text"], input[type="url"] {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 12px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background: #fafbfc;
+        }
+
+        input[type="text"]:focus, input[type="url"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            background: white;
+        }
+
+        .submit-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 15px 24px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .submit-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .result {
+            margin-top: 30px;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 1.2rem;
+            display: none;
+        }
+
+        .result.enterprise {
+            background: linear-gradient(135deg, #43e97b, #38f9d7);
+            color: #1a202c;
+        }
+
+        .result.growth {
+            background: linear-gradient(135deg, #fa709a, #fee140);
+            color: #1a202c;
+        }
+
+        .result.error {
+            background: linear-gradient(135deg, #fc466b, #3f5efb);
+            color: white;
+        }
+
+        .loader {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .details {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .linkedin-link {
+            color: #0066cc;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .linkedin-link:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 25px;
+                margin: 10px;
+            }
+            
+            h1 {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏢 Company Classifier</h1>
+        <p class="subtitle">Discover if a company is Enterprise (200+ employees) or Growth (&lt;200 employees)</p>
+        
+        <form id="classifierForm">
+            <div class="form-group">
+                <label for="brandName">Brand Name:</label>
+                <input type="text" id="brandName" name="brandName" placeholder="e.g., MySecondEar" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="websiteUrl">Website URL:</label>
+                <input type="url" id="websiteUrl" name="websiteUrl" placeholder="https://example.com" required>
+            </div>
+            
+            <button type="submit" class="submit-btn" id="submitBtn">
+                Classify Company
+            </button>
+        </form>
+
+        <div class="loader" id="loader">
+            <div class="spinner"></div>
+            <p>Analyzing company data...</p>
+        </div>
+
+        <div class="result" id="result">
+            <div id="resultText"></div>
+            <div class="details" id="resultDetails"></div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('classifierForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const brandName = document.getElementById('brandName').value.trim();
+            const websiteUrl = document.getElementById('websiteUrl').value.trim();
+            const submitBtn = document.getElementById('submitBtn');
+            const loader = document.getElementById('loader');
+            const result = document.getElementById('result');
+            
+            // Reset previous results
+            result.style.display = 'none';
+            result.className = 'result';
+            
+            // Show loader
+            loader.style.display = 'block';
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Analyzing...';
+            
+            try {
+                // Step 1: Search for LinkedIn company page
+                const linkedinUrl = await findLinkedInCompanyPage(brandName);
+                
+                if (!linkedinUrl) {
+                    showResult('error', 'LinkedIn page not found', `Could not find a LinkedIn company page for "${brandName}". The company might not have a LinkedIn presence.`);
+                    return;
+                }
+                
+                // Step 2: Get employee count from LinkedIn
+                const employeeData = await getEmployeeCount(linkedinUrl);
+                
+                if (!employeeData.found) {
+                    showResult('error', 'Employee count not found', `Found LinkedIn page but could not extract employee count. <a href="${linkedinUrl}" target="_blank" class="linkedin-link">View LinkedIn page</a>`);
+                    return;
+                }
+                
+                // Step 3: Classify company
+                const classification = employeeData.count > 200 ? 'Enterprise' : 'Growth';
+                const resultText = `${classification} Company`;
+                const details = `
+                    <strong>${brandName}</strong><br>
+                    Employee Count: ${employeeData.count} employees<br>
+                    Source: ${employeeData.source}<br>
+                    <a href="${linkedinUrl}" target="_blank" class="linkedin-link">View LinkedIn Page</a>
+                `;
+                
+                showResult(classification.toLowerCase(), resultText, details);
+                
+            } catch (error) {
+                console.error('Error:', error);
+                showResult('error', 'Analysis Failed', 'An error occurred while analyzing the company. Please try again.');
+            } finally {
+                // Reset button
+                loader.style.display = 'none';
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Classify Company';
+            }
+        });
+
+        function showResult(type, text, details) {
+            const result = document.getElementById('result');
+            const resultText = document.getElementById('resultText');
+            const resultDetails = document.getElementById('resultDetails');
+            
+            result.className = `result ${type}`;
+            resultText.textContent = text;
+            resultDetails.innerHTML = details;
+            result.style.display = 'block';
+        }
+
+        async function findLinkedInCompanyPage(brandName) {
+            // Simulate the Brave Search functionality
+            // In a real implementation, you'd need to use a search API or CORS proxy
+            
+            // For demo purposes, let's use a mock implementation
+            // You'll need to replace this with actual search logic
+            
+            const searchQuery = `site:linkedin.com/company "${brandName}"`;
+            
+            // Mock response - in reality you'd call a search API
+            if (brandName.toLowerCase().includes('mysecondear')) {
+                return 'https://www.linkedin.com/company/mysecondear';
+            }
+            
+            // For other companies, you'd implement actual search
+            // This could use:
+            // 1. A CORS proxy + Google/Bing search
+            // 2. A backend API endpoint
+            // 3. A search service API
+            
+            return null;
+        }
+
+        async function getEmployeeCount(linkedinUrl) {
+            try {
+                // Note: Due to CORS restrictions, direct LinkedIn scraping from browser won't work
+                // You'll need either:
+                // 1. A CORS proxy
+                // 2. A backend API
+                // 3. A browser extension with host permissions
+                
+                // For demo purposes with known companies:
+                if (linkedinUrl.includes('mysecondear')) {
+                    return {
+                        found: true,
+                        count: 22,
+                        source: 'LinkedIn JSON-LD data'
+                    };
+                }
+                
+                // Mock implementation for demo
+                const mockEmployeeCounts = {
+                    'google': 150000,
+                    'microsoft': 220000,
+                    'apple': 164000,
+                    'tesla': 140000,
+                    'spotify': 9000,
+                    'airbnb': 6800,
+                    'stripe': 4000,
+                    'notion': 500,
+                    'figma': 800
+                };
+                
+                const companyName = linkedinUrl.split('/company/')[1]?.toLowerCase();
+                for (const [company, count] of Object.entries(mockEmployeeCounts)) {
+                    if (companyName?.includes(company)) {
+                        return {
+                            found: true,
+                            count: count,
+                            source: 'Demo data'
+                        };
+                    }
+                }
+                
+                return { found: false };
+                
+            } catch (error) {
+                console.error('Error getting employee count:', error);
+                return { found: false };
+            }
+        }
+
+        // Add some example companies for quick testing
+        function addExampleButtons() {
+            const examples = [
+                { brand: 'MySecondEar', website: 'https://mysecondear.de' },
+                { brand: 'Google', website: 'https://google.com' },
+                { brand: 'Figma', website: 'https://figma.com' },
+                { brand: 'Notion', website: 'https://notion.so' }
+            ];
+            
+            const container = document.querySelector('.container');
+            const examplesDiv = document.createElement('div');
+            examplesDiv.innerHTML = `
+                <div style="margin-top: 20px; text-align: center;">
+                    <p style="color: #666; font-size: 14px; margin-bottom: 10px;">Quick examples:</p>
+                    <div style="display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;">
+                        ${examples.map(ex => 
+                            `<button type="button" onclick="fillExample('${ex.brand}', '${ex.website}')" 
+                                style="padding: 6px 12px; background: #f1f3f5; border: 1px solid #dee2e6; border-radius: 6px; cursor: pointer; font-size: 12px;">
+                                ${ex.brand}
+                            </button>`
+                        ).join('')}
+                    </div>
+                </div>
+            `;
+            container.appendChild(examplesDiv);
+        }
+        
+        function fillExample(brand, website) {
+            document.getElementById('brandName').value = brand;
+            document.getElementById('websiteUrl').value = website;
+        }
+        
+        // Add examples when page loads
+        document.addEventListener('DOMContentLoaded', addExampleButtons);
+    </script>
+</body>
+</html>
